@@ -168,7 +168,8 @@ export const GithubReadmeSection: React.FC<GithubReadmeSectionProps> = ({ appUrl
             <li>Abra <strong>https://github.com/soujlam/CalculadoraSimples</strong></li>
             <li>Clique na aba <strong>Settings</strong> &gt; menu lateral <strong>Pages</strong></li>
             <li>Em <em>Source</em>, selecione <strong>Deploy from a branch</strong></li>
-            <li>Escolha a branch <strong>main</strong> e a pasta <strong>/ (root)</strong> ou <strong>/docs</strong>, e clique em <strong>Save</strong>.</li>
+            <li>Escolha a branch <strong>main</strong> e no campo ao lado selecione a pasta <strong>/docs</strong> (importante: selecione <em>/docs</em> e não <em>/(root)</em> para carregar a versão compilada).</li>
+            <li>Clique em <strong>Save</strong>. Pronto! O erro de <em>main.tsx</em> desaparecerá.</li>
           </ol>
         </div>
 
