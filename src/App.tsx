@@ -47,6 +47,24 @@ export default function App() {
   // Carrega status do backend e histórico inicial
   useEffect(() => {
     const fetchStatusAndHistory = async () => {
+      // Se estiver no GitHub Pages (hospedagem estática), usa armazenamento local e status Wasm
+      if (typeof window !== 'undefined' && window.location.hostname.endsWith('github.io')) {
+        const saved = localStorage.getItem('calc_history');
+        if (saved) {
+          try {
+            setHistory(JSON.parse(saved));
+          } catch {}
+        }
+        setBackendStatus({
+          status: 'online',
+          runtime: 'Python 3.12 WebAssembly (Pyodide)',
+          pythonVersion: 'Python 3.12 Wasm',
+          historyCount: 0,
+          timestamp: new Date().toISOString(),
+        });
+        return;
+      }
+
       try {
         const [statusRes, historyRes] = await Promise.all([
           fetch('/api/status'),
@@ -199,7 +217,13 @@ export default function App() {
         formattedResult: result.formattedResult,
         timestamp: new Date().toISOString(),
       };
-      setHistory((prev) => [record, ...prev.slice(0, 29)]);
+      setHistory((prev) => {
+        const updated = [record, ...prev.slice(0, 29)];
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('calc_history', JSON.stringify(updated));
+        }
+        return updated;
+      });
     } else {
       setErrorMessage(result.error || 'Erro no cálculo');
       setStoredOperand(null);
@@ -284,8 +308,13 @@ export default function App() {
   // Limpar histórico completo
   const handleClearHistory = async () => {
     try {
-      await fetch('/api/history', { method: 'DELETE' });
+      if (typeof window !== 'undefined' && !window.location.hostname.endsWith('github.io')) {
+        await fetch('/api/history', { method: 'DELETE' });
+      }
       setHistory([]);
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('calc_history');
+      }
     } catch (err) {
       console.error('Falha ao limpar histórico:', err);
     }

@@ -96,7 +96,8 @@ def py_calculate(expr_str: str) -> str:
 `;
 
 let pyodidePromise: Promise<any> | null = null;
-let activeEngineType: EngineType = 'server';
+const isGithubPages = typeof window !== 'undefined' && window.location.hostname.endsWith('github.io');
+let activeEngineType: EngineType = isGithubPages ? 'wasm' : 'server';
 
 async function initPyodide(): Promise<any> {
   if (window.pyodideInstance) {
@@ -129,6 +130,13 @@ async function initPyodide(): Promise<any> {
   return pyodidePromise;
 }
 
+// Se estiver no GitHub Pages, pré-carrega o Pyodide em segundo plano
+if (isGithubPages) {
+  setTimeout(() => {
+    initPyodide().catch(() => {});
+  }, 100);
+}
+
 export async function calculateWithPython(payload: {
   operand1?: number;
   operator?: string | null;
@@ -153,7 +161,7 @@ export async function calculateWithPython(payload: {
     return { success: false, error: 'Expressão inválida', engine: activeEngineType };
   }
 
-  // Tenta primeiro o servidor backend (se estiver ativo)
+  // Tenta primeiro o servidor backend (apenas se não estiver no GitHub Pages estático)
   if (activeEngineType === 'server') {
     try {
       const res = await fetch('/api/calculate', {
@@ -167,13 +175,9 @@ export async function calculateWithPython(payload: {
         return { ...data, engine: 'server' };
       }
 
-      // Se retornou 404 (ex: no GitHub Pages onde não há servidor), muda para Pyodide
-      if (res.status === 404 || res.status === 502) {
-        console.info('Servidor API não encontrado (ambiente estático). Ativando Python WebAssembly (Pyodide)...');
-        activeEngineType = 'wasm';
-      }
+      // Se qualquer erro ocorrer (como 404 ou 405 Method Not Allowed), migra para Pyodide
+      activeEngineType = 'wasm';
     } catch {
-      console.info('Falha ao conectar no servidor. Ativando Python WebAssembly (Pyodide)...');
       activeEngineType = 'wasm';
     }
   }
