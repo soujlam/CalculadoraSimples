@@ -5,13 +5,16 @@ import { Keypad } from './components/Keypad.tsx';
 import { HistoryPanel } from './components/HistoryPanel.tsx';
 import { InfoModal } from './components/InfoModal.tsx';
 import { GithubReadmeSection } from './components/GithubReadmeSection.tsx';
-import { CalculationRecord, Operator, ThemeMode, BackendStatus } from './types.ts';
+import { PythonCodeViewer } from './components/PythonCodeViewer.tsx';
+import { CalculationRecord, Operator, ThemeMode, BackendStatus, AppTab } from './types.ts';
 import { calculateWithPython } from './services/calculatorService.ts';
+import { Calculator, Code2 } from 'lucide-react';
 
 const GITHUB_PAGES_URL = 'https://soujlam.github.io/CalculadoraSimples/';
 const APP_URL = GITHUB_PAGES_URL;
 
 export default function App() {
+  const [activeTab, setActiveTab] = useState<AppTab>('calculator');
   const [theme, setTheme] = useState<ThemeMode>(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('calc_theme') as ThemeMode;
@@ -328,6 +331,11 @@ export default function App() {
         return;
       }
 
+      // Se estiver visualizando o código Python, não processa atalhos de calculadora
+      if (activeTab !== 'calculator') {
+        return;
+      }
+
       if (e.key >= '0' && e.key <= '9') {
         e.preventDefault();
         handleDigit(e.key);
@@ -364,6 +372,7 @@ export default function App() {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [
+    activeTab,
     handleDigit,
     handleOperator,
     handleCalculate,
@@ -381,70 +390,99 @@ export default function App() {
         onOpenInfo={() => setIsInfoModalOpen(true)}
         onToggleHistory={() => setIsMobileHistoryOpen((prev) => !prev)}
         historyCount={history.length}
+        activeTab={activeTab}
+        onSelectTab={setActiveTab}
       />
 
       {/* Conteúdo Principal */}
-      <main className="flex-1 max-w-5xl w-full mx-auto px-4 sm:px-6 py-6 sm:py-10 flex flex-col justify-center">
-        {/* Banner informativo de arquitetura */}
-        <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-slate-500 dark:text-slate-400 pb-3 border-b border-slate-200/60 dark:border-slate-800/60">
-          <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-blue-500" />
-            <span>Motor: Python 3.10 com AST isolado no servidor</span>
-            <span aria-hidden="true">·</span>
-            <span>Zero cálculo matemático no frontend</span>
-          </div>
-
-          <div className="flex items-center gap-2">
+      <main className="flex-1 max-w-5xl w-full mx-auto px-4 sm:px-6 py-6 sm:py-8 flex flex-col justify-start">
+        {/* Seletor de Abas Principal */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+          <div className="flex items-center gap-1.5 p-1 bg-slate-200/80 dark:bg-slate-800/80 rounded-2xl w-full sm:w-auto shadow-inner">
             <button
-              onClick={() => setIsInfoModalOpen(true)}
-              className="text-blue-600 dark:text-blue-400 hover:underline"
+              onClick={() => setActiveTab('calculator')}
+              className={`flex-1 sm:flex-none px-4 py-2 text-xs sm:text-sm font-semibold rounded-xl transition-all flex items-center justify-center gap-2 ${
+                activeTab === 'calculator'
+                  ? 'bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-sm'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+              }`}
             >
-              Como funciona o isolamento
+              <Calculator className="w-4 h-4" />
+              <span>Calculadora</span>
+            </button>
+            <button
+              onClick={() => setActiveTab('python-code')}
+              className={`flex-1 sm:flex-none px-4 py-2 text-xs sm:text-sm font-semibold rounded-xl transition-all flex items-center justify-center gap-2 ${
+                activeTab === 'python-code'
+                  ? 'bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-sm'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+              }`}
+            >
+              <Code2 className="w-4 h-4" />
+              <span>Código em Python Explicado</span>
             </button>
           </div>
+
+          {activeTab === 'calculator' && (
+            <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
+              <span className="w-2 h-2 rounded-full bg-blue-500" />
+              <span>Motor Python {backendStatus?.pythonVersion || '3.10+'}</span>
+              <span aria-hidden="true">·</span>
+              <button
+                onClick={() => setIsInfoModalOpen(true)}
+                className="text-blue-600 dark:text-blue-400 hover:underline"
+              >
+                Detalhes da Arquitetura
+              </button>
+            </div>
+          )}
         </div>
 
-        {/* Grid: Calculadora + Painel de Histórico */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-          {/* Coluna da Calculadora (7 colunas no desktop) */}
-          <div className="lg:col-span-7 bg-white dark:bg-slate-900 p-5 sm:p-7 rounded-3xl border border-slate-200/80 dark:border-slate-800/80 shadow-md">
-            <Display
-              expression={expression}
-              currentInput={currentInput}
-              isLoading={isLoading}
-              errorMessage={errorMessage}
-              pythonVersion={backendStatus?.pythonVersion}
-            />
+        {/* Exibição condicional de acordo com a aba ativa */}
+        {activeTab === 'calculator' ? (
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+            {/* Coluna da Calculadora (7 colunas no desktop) */}
+            <div className="lg:col-span-7 bg-white dark:bg-slate-900 p-5 sm:p-7 rounded-3xl border border-slate-200/80 dark:border-slate-800/80 shadow-md">
+              <Display
+                expression={expression}
+                currentInput={currentInput}
+                isLoading={isLoading}
+                errorMessage={errorMessage}
+                pythonVersion={backendStatus?.pythonVersion}
+              />
 
-            <div className="mt-5">
-              <Keypad
-                onDigit={handleDigit}
-                onOperator={handleOperator}
-                onCalculate={handleCalculate}
-                onClear={handleBackspace}
-                onAllClear={handleAllClear}
-                onBackspace={handleBackspace}
-                onToggleSign={handleToggleSign}
-                onPercentage={handlePercentage}
-                activeOperator={activeOperator}
+              <div className="mt-5">
+                <Keypad
+                  onDigit={handleDigit}
+                  onOperator={handleOperator}
+                  onCalculate={handleCalculate}
+                  onClear={handleBackspace}
+                  onAllClear={handleAllClear}
+                  onBackspace={handleBackspace}
+                  onToggleSign={handleToggleSign}
+                  onPercentage={handlePercentage}
+                  activeOperator={activeOperator}
+                  isLoading={isLoading}
+                />
+              </div>
+            </div>
+
+            {/* Coluna do Histórico (5 colunas no desktop) */}
+            <div className="hidden lg:block lg:col-span-5 h-[530px]">
+              <HistoryPanel
+                history={history}
+                onSelectCalculation={handleSelectCalculation}
+                onClearHistory={handleClearHistory}
                 isLoading={isLoading}
               />
             </div>
           </div>
-
-          {/* Coluna do Histórico (5 colunas no desktop) */}
-          <div className="hidden lg:block lg:col-span-5 h-[530px]">
-            <HistoryPanel
-              history={history}
-              onSelectCalculation={handleSelectCalculation}
-              onClearHistory={handleClearHistory}
-              isLoading={isLoading}
-            />
-          </div>
-        </div>
+        ) : (
+          <PythonCodeViewer />
+        )}
 
         {/* Modal de Histórico para telas móveis */}
-        {isMobileHistoryOpen && (
+        {isMobileHistoryOpen && activeTab === 'calculator' && (
           <div className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm lg:hidden flex items-end sm:items-center justify-center p-4">
             <div className="bg-white dark:bg-slate-900 w-full max-w-md rounded-2xl p-4 max-h-[80vh] flex flex-col shadow-2xl border border-slate-200 dark:border-slate-800">
               <div className="flex justify-between items-center mb-3">

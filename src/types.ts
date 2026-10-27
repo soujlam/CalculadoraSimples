@@ -10,6 +10,8 @@ export type Operator = '+' | '-' | '*' | '/' | null;
 
 export type ThemeMode = 'dark' | 'light';
 
+export type AppTab = 'calculator' | 'python-code';
+
 export interface BackendStatus {
   status: string;
   runtime: string;

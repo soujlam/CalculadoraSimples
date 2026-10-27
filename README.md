@@ -16,10 +16,7 @@ Se você publicou o repositório com o GitHub Pages ativado, a URL padrão do se
 
 👉 **[https://soujlam.github.io/CalculadoraSimples/](https://soujlam.github.io/CalculadoraSimples/)**
 
-> **⚠️ Como resolver o erro `GET /src/main.tsx 404` no GitHub Pages:**
-> O arquivo `index.html` da raiz é para desenvolvimento (aponta para código fonte TypeScript). Para publicar a versão compilada, escolha uma das opções abaixo no GitHub:
-> - **Opção Recomendada (1 clique):** Vá em **Settings > Pages**, em *Branch* selecione `main` e troque a pasta de `/(root)` para **/docs**, e clique em **Save**.
-> - **Opção Automática (GitHub Actions):** Vá em **Settings > Pages**, e em *Source* selecione **GitHub Actions**. O arquivo `.github/workflows/deploy.yml` fará o build automaticamente.
+
 
 ### 2. Link no Google Cloud Run (Ambiente Ativo)
 Você também pode acessar a aplicação rodando no servidor Cloud Run:

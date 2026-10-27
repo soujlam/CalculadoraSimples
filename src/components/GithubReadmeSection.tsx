@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Github, ExternalLink, Copy, Check, Terminal, Globe, HelpCircle } from 'lucide-react';
+import { Github, ExternalLink, Copy, Check, Terminal, Globe } from 'lucide-react';
 
 interface GithubReadmeSectionProps {
   appUrl: string;
@@ -154,24 +154,7 @@ export const GithubReadmeSection: React.FC<GithubReadmeSectionProps> = ({ appUrl
           </div>
         </div>
 
-        {/* Passo a passo para ativar o GitHub Pages */}
-        <div className="p-4 rounded-xl bg-amber-50/60 dark:bg-amber-950/20 border border-amber-200/60 dark:border-amber-900/40 mb-6 text-xs text-amber-900 dark:text-amber-200">
-          <div className="font-semibold flex items-center gap-1.5 mb-1.5">
-            <HelpCircle className="w-4 h-4 text-amber-600 dark:text-amber-400" />
-            <span>Por que apareceu "Page not found"?</span>
-          </div>
-          <p className="leading-relaxed">
-            Se você acessou o GitHub Pages antes de ativá-lo, o GitHub retorna <em>"Page not found"</em> até que a publicação seja concluída.
-            Para ativar em seu repositório:
-          </p>
-          <ol className="list-decimal list-inside mt-2 space-y-1 pl-1">
-            <li>Abra <strong>https://github.com/soujlam/CalculadoraSimples</strong></li>
-            <li>Clique na aba <strong>Settings</strong> &gt; menu lateral <strong>Pages</strong></li>
-            <li>Em <em>Source</em>, selecione <strong>Deploy from a branch</strong></li>
-            <li>Escolha a branch <strong>main</strong> e no campo ao lado selecione a pasta <strong>/docs</strong> (importante: selecione <em>/docs</em> e não <em>/(root)</em> para carregar a versão compilada).</li>
-            <li>Clique em <strong>Save</strong>. Pronto! O erro de <em>main.tsx</em> desaparecerá.</li>
-          </ol>
-        </div>
+
 
         {/* Comandos para rodar localmente */}
         <div>
