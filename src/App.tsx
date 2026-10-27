@@ -6,8 +6,10 @@ import { HistoryPanel } from './components/HistoryPanel.tsx';
 import { InfoModal } from './components/InfoModal.tsx';
 import { GithubReadmeSection } from './components/GithubReadmeSection.tsx';
 import { CalculationRecord, Operator, ThemeMode, BackendStatus } from './types.ts';
+import { calculateWithPython } from './services/calculatorService.ts';
 
-const APP_URL = 'https://ais-pre-dmym2ihc6iz354ky24uxor-347800675442.us-east5.run.app';
+const GITHUB_PAGES_URL = 'https://soujlam.github.io/CalculadoraSimples/';
+const APP_URL = GITHUB_PAGES_URL;
 
 export default function App() {
   const [theme, setTheme] = useState<ThemeMode>(() => {
@@ -112,7 +114,7 @@ export default function App() {
     });
   }, [isNewInput]);
 
-  // Função auxiliar de envio de cálculo para a API Python
+  // Função auxiliar de envio de cálculo para o motor Python (Servidor ou WebAssembly)
   const executeCalculation = async (
     op1: number,
     operator: Operator,
@@ -122,18 +124,13 @@ export default function App() {
     setErrorMessage(null);
 
     try {
-      const response = await fetch('/api/calculate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          operand1: op1,
-          operator: operator,
-          operand2: op2,
-        }),
+      const result = await calculateWithPython({
+        operand1: op1,
+        operator: operator,
+        operand2: op2,
       });
 
-      const data = await response.json();
-      return data;
+      return result;
     } catch (err: any) {
       return {
         success: false,
@@ -195,9 +192,14 @@ export default function App() {
       setActiveOperator(null);
       setIsNewInput(true);
 
-      if (result.historyRecord) {
-        setHistory((prev) => [result.historyRecord, ...prev.slice(0, 29)]);
-      }
+      const record: CalculationRecord = result.historyRecord || {
+        id: Math.random().toString(36).substring(2, 9),
+        expression: `${op1} ${getOperatorSymbol(op)} ${op2}`,
+        result: result.result,
+        formattedResult: result.formattedResult,
+        timestamp: new Date().toISOString(),
+      };
+      setHistory((prev) => [record, ...prev.slice(0, 29)]);
     } else {
       setErrorMessage(result.error || 'Erro no cálculo');
       setStoredOperand(null);
@@ -246,27 +248,22 @@ export default function App() {
     });
   }, [currentInput, errorMessage]);
 
-  // Porcentagem calculada estritamente no Python
+  // Porcentagem calculada estritamente no motor Python
   const handlePercentage = useCallback(async () => {
     if (errorMessage) return;
 
     setIsLoading(true);
     try {
-      const response = await fetch('/api/calculate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          expression: `${currentInput} / 100`,
-        }),
+      const result = await calculateWithPython({
+        expression: `${currentInput} / 100`,
       });
 
-      const data = await response.json();
-      if (data.success) {
-        setCurrentInput(data.formattedResult);
+      if (result.success) {
+        setCurrentInput(result.formattedResult || '0');
         setExpression(`${currentInput}% =`);
         setIsNewInput(true);
       } else {
-        setErrorMessage(data.error);
+        setErrorMessage(result.error || 'Erro ao calcular porcentagem');
       }
     } catch {
       setErrorMessage('Erro ao calcular porcentagem');

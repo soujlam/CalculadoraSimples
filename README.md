@@ -9,13 +9,19 @@ Um aplicativo web moderno e intuitivo de calculadora aritmética simples, projet
 
 ---
 
-## 🌐 Link de Uso da Calculadora no Navegador
+## 🌐 Links de Acesso da Calculadora no Navegador
 
-Acesse a calculadora diretamente através do seu navegador no link abaixo:
+### 1. Link Oficial no GitHub Pages
+Se você publicou o repositório com o GitHub Pages ativado, a URL padrão do seu projeto é:
 
-👉 **[https://ais-pre-dmym2ihc6iz354ky24uxor-347800675442.us-east5.run.app](https://ais-pre-dmym2ihc6iz354ky24uxor-347800675442.us-east5.run.app)**
+👉 **[https://soujlam.github.io/CalculadoraSimples/](https://soujlam.github.io/CalculadoraSimples/)**
 
-*(Não requer nenhuma instalação para uso pelo navegador)*
+> **Nota:** Para ativar essa URL no GitHub: vá em seu repositório **Settings > Pages > Deploy from a branch** e selecione a branch `main`. O GitHub gerará a página em instantes.
+
+### 2. Link no Google Cloud Run (Ambiente Ativo)
+Você também pode acessar a aplicação rodando no servidor Cloud Run:
+
+👉 **[https://ais-dev-dmym2ihc6iz354ky24uxor-347800675442.us-east5.run.app](https://ais-dev-dmym2ihc6iz354ky24uxor-347800675442.us-east5.run.app)**
 
 ---
 
@@ -105,8 +111,8 @@ Acesse a calculadora diretamente através do seu navegador no link abaixo:
 
 ### 1. Clonar o Repositório
 ```bash
-git clone https://github.com/usuario/calculadora-python-web.git
-cd calculadora-python-web
+git clone https://github.com/soujlam/CalculadoraSimples.git
+cd CalculadoraSimples
 ```
 
 ### 2. Instalar as Dependências

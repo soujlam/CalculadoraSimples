@@ -51,10 +51,13 @@ export const Header: React.FC<HeaderProps> = ({
             )}
           </button>
           <a
-            href="#readme"
-            className="hover:text-slate-900 dark:hover:text-slate-100 transition-colors whitespace-nowrap shrink-0"
+            href="https://github.com/soujlam/CalculadoraSimples"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hover:text-slate-900 dark:hover:text-slate-100 transition-colors whitespace-nowrap shrink-0 flex items-center gap-1"
           >
-            Guia GitHub
+            <Github className="w-4 h-4" />
+            <span>GitHub</span>
           </a>
         </nav>
 
