@@ -1,0 +1,6 @@
+{
+  "name": "Calculadora Web Python",
+  "description": "Calculadora aritmética moderna com lógica computacional isolada no backend em Python e histórico de cálculos.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
