@@ -1,15 +1,14 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useMemo } from 'react';
 import {
   Code2,
   Copy,
   Check,
   Shield,
-  Sparkles,
   FileCode,
-  Layers,
   ArrowRight,
-  Info,
   CheckCircle2,
+  Terminal,
+  Cpu,
 } from 'lucide-react';
 
 interface CodeComponentInfo {
@@ -38,7 +37,8 @@ const PYTHON_COMPONENTS: CodeComponentInfo[] = [
       'Mapeia os nós da Árvore Sintática (ex: ast.Add, ast.Mult) diretamente para funções do módulo operator (operator.add, operator.mul).',
       'Atua como um filtro rigoroso: qualquer operação fora dessa lista é imediatamente rejeitada antes de rodar.',
     ],
-    keyHighlight: 'OPERATORS = {\n    ast.Add: operator.add,\n    ast.Sub: operator.sub,\n    ast.Mult: operator.mul,\n    ast.Div: operator.truediv,\n    ast.Mod: operator.mod,\n    ast.USub: operator.neg,\n    ast.UAdd: operator.pos,\n}',
+    keyHighlight:
+      'OPERATORS = {\n    ast.Add: operator.add,\n    ast.Sub: operator.sub,\n    ast.Mult: operator.mul,\n    ast.Div: operator.truediv,\n    ast.Mod: operator.mod,\n    ast.USub: operator.neg,\n    ast.UAdd: operator.pos,\n}',
   },
   {
     id: 'clean_expression',
@@ -55,7 +55,8 @@ const PYTHON_COMPONENTS: CodeComponentInfo[] = [
       'Converte a vírgula decimal brasileira "," para o ponto decimal "." do padrão Python.',
       'Remove espaços desnecessários nas extremidades com .strip().',
     ],
-    keyHighlight: 'def clean_expression(raw_expr: str) -> str:\n    expr = raw_expr.strip()\n    expr = expr.replace(\'×\', \'*\').replace(\'x\', \'*\').replace(\'X\', \'*\')\n    expr = expr.replace(\'÷\', \'/\')\n    expr = expr.replace(\',\', \'.\')\n    return expr',
+    keyHighlight:
+      "def clean_expression(raw_expr: str) -> str:\n    expr = raw_expr.strip()\n    expr = expr.replace('×', '*').replace('x', '*').replace('X', '*')\n    expr = expr.replace('÷', '/')\n    expr = expr.replace(',', '.')\n    return expr",
   },
   {
     id: 'eval_node',
@@ -72,7 +73,8 @@ const PYTHON_COMPONENTS: CodeComponentInfo[] = [
       'Interrompe e lança ZeroDivisionError se identificar uma divisão por zero (right == 0).',
       'Aplica a função aritmética mapeada: OPERATORS[op_type](left, right).',
     ],
-    keyHighlight: 'if isinstance(node, ast.BinOp):\n    left = eval_node(node.left)\n    right = eval_node(node.right)\n    op_type = type(node.op)\n    if op_type == ast.Div and right == 0:\n        raise ZeroDivisionError("Divisão por zero não é permitida")\n    return OPERATORS[op_type](left, right)',
+    keyHighlight:
+      'if isinstance(node, ast.BinOp):\n    left = eval_node(node.left)\n    right = eval_node(node.right)\n    op_type = type(node.op)\n    if op_type == ast.Div and right == 0:\n        raise ZeroDivisionError("Divisão por zero não é permitida")\n    return OPERATORS[op_type](left, right)',
   },
   {
     id: 'format_number',
@@ -88,7 +90,8 @@ const PYTHON_COMPONENTS: CodeComponentInfo[] = [
       'Arredonda números fracionários para 10 casas decimais com round(val, 10).',
       'Elimina zeros residuais e pontos soltos com .rstrip(\'0\').rstrip(\'.\').',
     ],
-    keyHighlight: 'rounded = round(val, 10)\nif rounded == int(rounded):\n    return str(int(rounded))\nreturn f"{rounded:.10f}".rstrip(\'0\').rstrip(\'.\')',
+    keyHighlight:
+      'rounded = round(val, 10)\nif rounded == int(rounded):\n    return str(int(rounded))\nreturn f"{rounded:.10f}".rstrip(\'0\').rstrip(\'.\')',
   },
   {
     id: 'calculate',
@@ -100,12 +103,13 @@ const PYTHON_COMPONENTS: CodeComponentInfo[] = [
       'Gera a árvore sintática com ast.parse(), orquestra a execução e captura todas as exceções.',
     role: 'Garante que o backend nunca caia diante de entradas inválidas, retornando sempre mensagens de erro amigáveis.',
     howItWorks: [
-      'Gera a árvore sintática via ast.parse(cleaned, mode=\'eval\').',
+      "Gera a árvore sintática via ast.parse(cleaned, mode='eval').",
       'Executa eval_node() dentro de um bloco try/except seguro.',
       'Captura ZeroDivisionError e devolve {"success": false, "error": "Divisão por zero não é permitida"}.',
       'Captura erros de digitação (SyntaxError, ValueError) e devolve a mensagem clara correspondente.',
     ],
-    keyHighlight: 'try:\n    parsed_ast = ast.parse(cleaned, mode=\'eval\')\n    raw_result = eval_node(parsed_ast)\n    return {"success": True, "result": num_result, "formattedResult": formatted}\nexcept ZeroDivisionError:\n    return {"success": False, "error": "Divisão por zero não é permitida"}',
+    keyHighlight:
+      'try:\n    parsed_ast = ast.parse(cleaned, mode=\'eval\')\n    raw_result = eval_node(parsed_ast)\n    return {"success": True, "result": num_result, "formattedResult": formatted}\nexcept ZeroDivisionError:\n    return {"success": False, "error": "Divisão por zero não é permitida"}',
   },
   {
     id: 'main',
@@ -122,7 +126,8 @@ const PYTHON_COMPONENTS: CodeComponentInfo[] = [
       'Faz o parse do JSON de entrada e chama calculate() ou calculate_binary().',
       'Serializa o resultado em JSON puro com json.dumps() e imprime no stdout.',
     ],
-    keyHighlight: 'data = json.loads(input_data)\nres = calculate_binary(float(data["operand1"]), str(data["operator"]), float(data["operand2"]))\nprint(json.dumps(res, ensure_ascii=False))',
+    keyHighlight:
+      'data = json.loads(input_data)\nres = calculate_binary(float(data["operand1"]), str(data["operator"]), float(data["operand2"]))\nprint(json.dumps(res, ensure_ascii=False))',
   },
 ];
 
@@ -316,6 +321,159 @@ def main():
 if __name__ == "__main__":
     main()`;
 
+// Conjuntos de palavras-chave para Syntax Highlighting estilizado estilo IDE (VS Code / PyCharm)
+const KEYWORDS = new Set([
+  'import',
+  'from',
+  'def',
+  'return',
+  'if',
+  'elif',
+  'else',
+  'try',
+  'except',
+  'raise',
+  'is',
+  'not',
+  'in',
+  'and',
+  'or',
+  'as',
+  'while',
+  'for',
+  'class',
+  'pass',
+]);
+
+const BUILTINS = new Set([
+  'isinstance',
+  'round',
+  'type',
+  'print',
+  'len',
+  'range',
+  'int',
+  'float',
+  'str',
+  'dict',
+  'list',
+  'bool',
+]);
+
+const CONSTANTS = new Set(['True', 'False', 'None']);
+const EXCEPTIONS = new Set([
+  'ZeroDivisionError',
+  'SyntaxError',
+  'ValueError',
+  'Exception',
+  'InvalidOperation',
+]);
+const MODULES = new Set([
+  'sys',
+  'json',
+  'ast',
+  'operator',
+  'Decimal',
+  'Add',
+  'Sub',
+  'Mult',
+  'Div',
+  'Mod',
+  'USub',
+  'UAdd',
+  'Constant',
+  'BinOp',
+  'UnaryOp',
+  'Expression',
+]);
+
+/**
+ * Função de realce de sintaxe Python com cores fiéis às IDEs modernas (VS Code Dark+)
+ */
+function renderHighlightedCodeLine(
+  line: string,
+  isDocstringLine: boolean
+): React.ReactNode {
+  if (line.trim() === '') {
+    return ' ';
+  }
+
+  // Linhas inteiras de comentário
+  if (line.trim().startsWith('#')) {
+    return <span className="text-emerald-500/80 italic font-mono">{line}</span>;
+  }
+
+  // Linhas dentro de docstring multiline """ ... """
+  if (isDocstringLine || line.trim().startsWith('"""') || line.trim().endsWith('"""')) {
+    return <span className="text-emerald-400/90 italic font-mono">{line}</span>;
+  }
+
+  // Tokenização precisa mantendo espaços e pontuações
+  const tokenRegex =
+    /(f?['"][^'"]*['"]|#.*$|[a-zA-Z_][a-zA-Z0-9_]*|\b\d+(?:\.\d+)?\b|[+\-*/%=!<>:,(){}[\]|&]+|\s+|[^\s\w])/g;
+
+  const matches = line.match(tokenRegex) || [line];
+  let previousToken = '';
+
+  return (
+    <>
+      {matches.map((token, index) => {
+        let tokenColor = 'text-slate-200'; // padrão para identificadores e variáveis
+
+        if (token.startsWith('#')) {
+          // Comentário inline no fim da linha
+          tokenColor = 'text-emerald-500/80 italic';
+        } else if (
+          (token.startsWith("'") && token.endsWith("'")) ||
+          (token.startsWith('"') && token.endsWith('"')) ||
+          (token.startsWith("f'") && token.endsWith("'")) ||
+          (token.startsWith('f"') && token.endsWith('"'))
+        ) {
+          // Strings literais
+          tokenColor = 'text-emerald-300';
+        } else if (KEYWORDS.has(token)) {
+          // Palavras-chave de controle (def, return, if, try...)
+          tokenColor = 'text-purple-400 font-semibold';
+        } else if (previousToken === 'def') {
+          // Nome da função logo após "def"
+          tokenColor = 'text-amber-300 font-bold';
+        } else if (CONSTANTS.has(token)) {
+          // True, False, None
+          tokenColor = 'text-cyan-400 font-bold';
+        } else if (EXCEPTIONS.has(token)) {
+          // Exceções como ZeroDivisionError
+          tokenColor = 'text-rose-400 font-semibold';
+        } else if (BUILTINS.has(token)) {
+          // Funções embutidas (print, isinstance, round, int, float)
+          tokenColor = 'text-sky-300 font-medium';
+        } else if (MODULES.has(token)) {
+          // Módulos e classes ast.*
+          tokenColor = 'text-teal-300 font-medium';
+        } else if (/^\d+(\.\d+)?$/.test(token)) {
+          // Números literais
+          tokenColor = 'text-amber-200 font-mono-numbers';
+        } else if (/^[+\-*/%=!<>]+$/.test(token)) {
+          // Operadores aritméticos e lógicos
+          tokenColor = 'text-pink-400 font-semibold';
+        } else if (/^[(),:{}[\]]+$/.test(token)) {
+          // Pontuação e delimitadores
+          tokenColor = 'text-slate-400';
+        }
+
+        if (token.trim() !== '') {
+          previousToken = token;
+        }
+
+        return (
+          <span key={index} className={tokenColor}>
+            {token}
+          </span>
+        );
+      })}
+    </>
+  );
+}
+
 export const PythonCodeViewer: React.FC = () => {
   const [selectedComponentId, setSelectedComponentId] = useState<string>('operators');
   const [copied, setCopied] = useState<boolean>(false);
@@ -344,27 +502,46 @@ export const PythonCodeViewer: React.FC = () => {
     }
   };
 
-  const codeLines = FULL_PYTHON_CODE.split('\n');
+  const codeLines = useMemo(() => FULL_PYTHON_CODE.split('\n'), []);
+
+  // Mapeia linhas que pertencem a docstrings multilinha
+  const docstringLines = useMemo(() => {
+    const isDoc = new Set<number>();
+    let inDoc = false;
+    codeLines.forEach((l, idx) => {
+      const trimmed = l.trim();
+      const count = (trimmed.match(/"""/g) || []).length;
+      if (count === 1) {
+        inDoc = !inDoc;
+        isDoc.add(idx + 1);
+      } else if (count === 2) {
+        isDoc.add(idx + 1);
+      } else if (inDoc) {
+        isDoc.add(idx + 1);
+      }
+    });
+    return isDoc;
+  }, [codeLines]);
 
   return (
     <div className="w-full space-y-6">
-      {/* Cabeçalho do Visualizador de Código */}
+      {/* Cabeçalho da Aba */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200 dark:border-slate-800">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center font-mono font-bold text-lg shadow-sm">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-700 text-white flex items-center justify-center font-mono font-bold text-lg shadow-sm">
             Py
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">
-                Código-Fonte em Python
+              <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                <span>Código-Fonte em Python</span>
+                <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 font-mono font-normal">
+                  Sintaxe Estilo IDE
+                </span>
               </h2>
-              <span className="font-mono text-xs px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
-                engine/calculator.py
-              </span>
             </div>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-              Código não-editável com análise interativa dos principais componentes matemáticos
+              Visualização com realce de sintaxe colorido (VS Code Dark+) e inspeção interativa dos componentes
             </p>
           </div>
         </div>
@@ -391,10 +568,10 @@ export const PythonCodeViewer: React.FC = () => {
         </div>
       </div>
 
-      {/* Barra de Componentes Clicáveis (Explorador Interativo) */}
+      {/* Botões Clicáveis para Inspecionar Componentes */}
       <div>
         <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider block mb-2">
-          Clique em um componente abaixo para inspecionar sua função no código:
+          Clique em um componente para focar e entender como ele funciona:
         </span>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
           {PYTHON_COMPONENTS.map((comp) => {
@@ -432,31 +609,46 @@ export const PythonCodeViewer: React.FC = () => {
         </div>
       </div>
 
-      {/* Grid Principal: Código Python Não-Editável (Esquerda) + Cartão Explicativo (Direita) */}
+      {/* Grid Principal: IDE Editor de Código (Esquerda) + Card Explicativo (Direita) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        {/* Visualizador de Código Não-Editável */}
-        <div className="lg:col-span-7 bg-slate-950 rounded-2xl border border-slate-800 shadow-md overflow-hidden flex flex-col h-[620px]">
-          {/* Barra de título do editor */}
-          <div className="bg-slate-900 px-4 py-2.5 border-b border-slate-800 flex items-center justify-between text-xs text-slate-400 font-mono">
-            <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-rose-500/80" />
-              <span className="w-2.5 h-2.5 rounded-full bg-amber-500/80" />
-              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500/80" />
-              <span className="ml-2 text-slate-300">engine/calculator.py</span>
+        {/* Janela de Código Estilo IDE (VS Code Dark+) */}
+        <div className="lg:col-span-7 bg-[#1e1e1e] rounded-2xl border border-slate-800 shadow-xl overflow-hidden flex flex-col h-[640px]">
+          {/* Barra superior de abas da IDE */}
+          <div className="bg-[#252526] px-4 py-2 border-b border-[#333333] flex items-center justify-between text-xs text-slate-400 select-none">
+            {/* Botões de controle da janela (macOS style) */}
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-1.5">
+                <span className="w-3 h-3 rounded-full bg-[#ff5f56] inline-block" />
+                <span className="w-3 h-3 rounded-full bg-[#ffbd2e] inline-block" />
+                <span className="w-3 h-3 rounded-full bg-[#27c93f] inline-block" />
+              </div>
+
+              {/* Aba ativa com logo Python */}
+              <div className="flex items-center gap-1.5 px-3 py-1 bg-[#1e1e1e] text-slate-200 rounded-t-md text-xs font-mono border-t-2 border-blue-500">
+                <span className="text-amber-400 font-bold">Py</span>
+                <span>calculator.py</span>
+              </div>
             </div>
-            <span className="text-[11px] text-slate-500">Apenas leitura (Não-editável)</span>
+
+            {/* Informações da IDE */}
+            <div className="flex items-center gap-3 font-mono text-[11px] text-slate-400">
+              <span className="hidden sm:inline">Python 3.10+</span>
+              <span>UTF-8</span>
+              <span className="text-emerald-400">● Somente leitura</span>
+            </div>
           </div>
 
-          {/* Área de rolagem do código com números de linha */}
+          {/* Área de código com numeração e Syntax Highlighting estilizado */}
           <div
             ref={codeContainerRef}
-            className="flex-1 overflow-auto p-4 font-mono text-xs text-slate-200 scrollbar-thin select-text"
+            className="flex-1 overflow-auto p-4 font-mono text-[12.5px] leading-relaxed bg-[#1e1e1e] scrollbar-thin select-text"
           >
             <pre className="table w-full">
               {codeLines.map((line, idx) => {
                 const lineNum = idx + 1;
                 const isHighlighted =
                   lineNum >= selectedComponent.lineStart && lineNum <= selectedComponent.lineEnd;
+                const isDoc = docstringLines.has(lineNum);
 
                 return (
                   <div
@@ -464,27 +656,39 @@ export const PythonCodeViewer: React.FC = () => {
                     data-line-number={lineNum}
                     className={`table-row transition-colors ${
                       isHighlighted
-                        ? 'bg-blue-900/30 text-blue-100 font-medium'
-                        : 'hover:bg-slate-900/40 text-slate-300'
+                        ? 'bg-blue-950/60 font-medium'
+                        : 'hover:bg-[#282828]'
                     }`}
                   >
                     {/* Número da Linha */}
-                    <span className="table-cell select-none pr-4 text-right text-slate-600 font-mono text-[11px] w-10">
+                    <span className="table-cell select-none pr-4 text-right text-slate-600 font-mono text-[11px] w-10 border-r border-[#333333]/40">
                       {lineNum}
                     </span>
-                    {/* Conteúdo da Linha */}
-                    <span className="table-cell whitespace-pre font-mono">
-                      {line || ' '}
+                    {/* Código Colorido */}
+                    <span className="table-cell pl-4 whitespace-pre font-mono">
+                      {renderHighlightedCodeLine(line, isDoc)}
                     </span>
                   </div>
                 );
               })}
             </pre>
           </div>
+
+          {/* Barra de rodapé da IDE */}
+          <div className="bg-[#007acc] px-4 py-1 flex items-center justify-between text-[11px] text-white font-mono select-none">
+            <div className="flex items-center gap-3">
+              <span>Ln {selectedComponent.lineStart}, Col 1</span>
+              <span>Spaces: 4</span>
+              <span>UTF-8</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span>Python AST Engine</span>
+            </div>
+          </div>
         </div>
 
         {/* Cartão Explicativo Interativo do Componente Selecionado */}
-        <div className="lg:col-span-5 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm flex flex-col justify-between h-[620px] overflow-y-auto scrollbar-thin">
+        <div className="lg:col-span-5 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm flex flex-col justify-between h-[640px] overflow-y-auto scrollbar-thin">
           <div>
             {/* Cabeçalho do Card */}
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
@@ -537,14 +741,14 @@ export const PythonCodeViewer: React.FC = () => {
               <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider block mb-1.5">
                 Trecho de código em destaque:
               </span>
-              <pre className="p-3 rounded-xl bg-slate-900 text-slate-200 font-mono text-[11px] overflow-x-auto border border-slate-800 leading-relaxed">
+              <pre className="p-3 rounded-xl bg-[#1e1e1e] text-slate-200 font-mono text-[11px] overflow-x-auto border border-slate-800 leading-relaxed">
                 <code>{selectedComponent.keyHighlight}</code>
               </pre>
             </div>
           </div>
 
           <div className="pt-4 border-t border-slate-100 dark:border-slate-800 text-[11px] text-slate-500 dark:text-slate-400 flex items-center justify-between">
-            <span>Dica: clique em outro componente acima para inspecionar</span>
+            <span>Dica: clique em outro componente acima para navegar</span>
             <button
               onClick={() => {
                 const currentIndex = PYTHON_COMPONENTS.findIndex(

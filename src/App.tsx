@@ -36,13 +36,15 @@ export default function App() {
   const [isInfoModalOpen, setIsInfoModalOpen] = useState<boolean>(false);
   const [isMobileHistoryOpen, setIsMobileHistoryOpen] = useState<boolean>(false);
 
-  // Sincroniza o tema com a classe HTML
+  // Sincroniza o tema com a classe HTML e body
   useEffect(() => {
     const root = document.documentElement;
     if (theme === 'dark') {
       root.classList.add('dark');
+      document.body.classList.add('dark');
     } else {
       root.classList.remove('dark');
+      document.body.classList.remove('dark');
     }
     localStorage.setItem('calc_theme', theme);
   }, [theme]);
