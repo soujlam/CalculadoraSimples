@@ -13,26 +13,9 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <script>
-      // No GitHub Pages com raiz /(root), carrega o CSS compilado
-      if (window.location.hostname.endsWith('github.io')) {
-        const link = document.createElement('link');
-        link.rel = 'stylesheet';
-        link.href = './assets/index.css';
-        document.head.appendChild(link);
-      }
-    </script>
   </head>
   <body class="bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 antialiased min-h-screen">
     <div id="root"></div>
-    <script type="module">
-      if (window.location.hostname.endsWith('github.io')) {
-        // No GitHub Pages (modo estático), executa o bundle JavaScript compilado
-        import('./assets/index.js');
-      } else {
-        // No ambiente de desenvolvimento (Vite dev server / Cloud Run)
-        import('/src/main.tsx');
-      }
-    </script>
+    <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
