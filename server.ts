@@ -49,20 +49,27 @@ function runPythonCalculator(payload: Record<string, unknown>): Promise<any> {
 // Endpoint de cálculo via Python
 app.post('/api/calculate', async (req: Request, res: Response) => {
   try {
-    const { expression, operand1, operator, operand2 } = req.body;
+    const { expression, operand1, operator, operand2, action, value, base, percentage } = req.body;
 
-    if (!expression && (operand1 === undefined || !operator || operand2 === undefined)) {
+    const isPercentage = action === 'percentage' || percentage !== undefined;
+
+    if (!expression && (operand1 === undefined || !operator || operand2 === undefined) && !isPercentage) {
       res.status(400).json({ success: false, error: 'Expressão ou operandos não fornecidos.' });
       return;
     }
 
-    const payload = expression ? { expression } : { operand1, operator, operand2 };
+    const payload = req.body;
     const pyResult = await runPythonCalculator(payload);
 
     if (pyResult.success) {
+      const expr =
+        pyResult.expression ||
+        expression ||
+        (base !== undefined && operator ? `${base} ${operator} ${value ?? percentage}%` : `${value ?? percentage}%`);
+
       const record: CalculationRecord = {
         id: Math.random().toString(36).substring(2, 9),
-        expression: pyResult.expression,
+        expression: expr,
         result: pyResult.result,
         formattedResult: pyResult.formattedResult,
         timestamp: new Date().toISOString(),
@@ -76,6 +83,7 @@ app.post('/api/calculate', async (req: Request, res: Response) => {
 
       res.json({
         ...pyResult,
+        expression: expr,
         historyRecord: record,
       });
     } else {

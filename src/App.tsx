@@ -237,6 +237,13 @@ export default function App() {
     }
   }, [currentInput, storedOperand, activeOperator]);
 
+  // Limpeza apenas da entrada corrente (C)
+  const handleClear = useCallback(() => {
+    setCurrentInput('0');
+    setErrorMessage(null);
+    setIsNewInput(true);
+  }, []);
+
   // Limpeza total (AC)
   const handleAllClear = useCallback(() => {
     setCurrentInput('0');
@@ -281,25 +288,66 @@ export default function App() {
   const handlePercentage = useCallback(async () => {
     if (errorMessage) return;
 
+    const currentVal = parseFloat(currentInput);
+    if (isNaN(currentVal)) return;
+
     setIsLoading(true);
     try {
-      const result = await calculateWithPython({
-        expression: `${currentInput} / 100`,
-      });
+      if (storedOperand !== null && activeOperator !== null) {
+        // Cálculo de porcentagem proporcional com base no operador anterior
+        // Ex: 200 + 10% -> 10% de 200 é 20. O visor vira 20 e a expressão '200 + 20'.
+        const result = await calculateWithPython({
+          action: 'percentage',
+          value: currentVal,
+          base: storedOperand,
+          operator: activeOperator,
+          expression: `${storedOperand} ${activeOperator} ${currentVal}%`,
+        });
 
-      if (result.success) {
-        setCurrentInput(result.formattedResult || '0');
-        setExpression(`${currentInput}% =`);
-        setIsNewInput(true);
+        if (result.success) {
+          setCurrentInput(result.formattedResult || '0');
+          setExpression(`${storedOperand} ${getOperatorSymbol(activeOperator)} ${result.formattedResult}`);
+          setIsNewInput(true);
+        } else {
+          setErrorMessage(result.error || 'Erro ao calcular porcentagem');
+        }
       } else {
-        setErrorMessage(result.error || 'Erro ao calcular porcentagem');
+        // Porcentagem simples direta (ex: 50% = 0.5)
+        const result = await calculateWithPython({
+          action: 'percentage',
+          value: currentVal,
+          expression: `${currentVal}%`,
+        });
+
+        if (result.success) {
+          setCurrentInput(result.formattedResult || '0');
+          setExpression(`${currentVal}% =`);
+          setIsNewInput(true);
+
+          const record: CalculationRecord = result.historyRecord || {
+            id: Math.random().toString(36).substring(2, 9),
+            expression: `${currentVal}%`,
+            result: result.result,
+            formattedResult: result.formattedResult,
+            timestamp: new Date().toISOString(),
+          };
+          setHistory((prev) => {
+            const updated = [record, ...prev.slice(0, 29)];
+            if (typeof window !== 'undefined') {
+              localStorage.setItem('calc_history', JSON.stringify(updated));
+            }
+            return updated;
+          });
+        } else {
+          setErrorMessage(result.error || 'Erro ao calcular porcentagem');
+        }
       }
     } catch {
       setErrorMessage('Erro ao calcular porcentagem');
     } finally {
       setIsLoading(false);
     }
-  }, [currentInput, errorMessage]);
+  }, [currentInput, storedOperand, activeOperator, errorMessage]);
 
   // Reutilizar cálculo do histórico
   const handleSelectCalculation = (record: CalculationRecord) => {
@@ -455,10 +503,11 @@ export default function App() {
 
               <div className="mt-5">
                 <Keypad
+                  currentInput={currentInput}
                   onDigit={handleDigit}
                   onOperator={handleOperator}
                   onCalculate={handleCalculate}
-                  onClear={handleBackspace}
+                  onClear={handleClear}
                   onAllClear={handleAllClear}
                   onBackspace={handleBackspace}
                   onToggleSign={handleToggleSign}

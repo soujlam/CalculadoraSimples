@@ -97,8 +97,8 @@ const PYTHON_COMPONENTS: CodeComponentInfo[] = [
     id: 'calculate',
     name: '5. Controlador Central e Exceções (calculate / calculate_binary)',
     badge: 'Orquestração & Tratamento de Erros',
-    lineStart: 81,
-    lineEnd: 152,
+    lineStart: 86,
+    lineEnd: 157,
     summary:
       'Gera a árvore sintática com ast.parse(), orquestra a execução e captura todas as exceções.',
     role: 'Garante que o backend nunca caia diante de entradas inválidas, retornando sempre mensagens de erro amigáveis.',
@@ -112,22 +112,39 @@ const PYTHON_COMPONENTS: CodeComponentInfo[] = [
       'try:\n    parsed_ast = ast.parse(cleaned, mode=\'eval\')\n    raw_result = eval_node(parsed_ast)\n    return {"success": True, "result": num_result, "formattedResult": formatted}\nexcept ZeroDivisionError:\n    return {"success": False, "error": "Divisão por zero não é permitida"}',
   },
   {
+    id: 'percentage',
+    name: '6. Cálculo de Porcentagem (calculate_percentage)',
+    badge: 'Cálculo Percentual Proporcional',
+    lineStart: 159,
+    lineEnd: 194,
+    summary:
+      'Calcula porcentagens simples (50% = 0.5) e proporcionais associadas a operações (ex: 200 + 10% = 20 de acréscimo).',
+    role: 'Permite que o usuário aplique acréscimos, descontos ou taxas percentuais com segurança matemática.',
+    howItWorks: [
+      'Se houver um valor base e operador (+ ou -), calcula a fração proporcional (base * taxa) / 100.',
+      'Se for cálculo isolado ou com outros operadores (* ou /), converte a taxa para decimal (taxa / 100).',
+      'Formata o resultado com format_number e retorna a estrutura JSON padronizada.',
+    ],
+    keyHighlight:
+      'def calculate_percentage(value, base=None, operator_symbol=None):\n    if base is not None and operator_symbol in ("+", "-"):\n        percent_val = (base * val) / 100.0\n    else:\n        percent_val = val / 100.0\n    return {"success": True, "result": percent_val}',
+  },
+  {
     id: 'main',
-    name: '6. Interface CLI e Comunicação JSON (main)',
+    name: '7. Interface CLI e Comunicação JSON (main)',
     badge: 'Ponte com Servidor & Linha de Comando',
-    lineStart: 154,
-    lineEnd: 190,
+    lineStart: 196,
+    lineEnd: 239,
     summary:
       'Permite que o script seja chamado pelo servidor Express ou via terminal como um processo independente.',
     role: 'Mantém o desacoplamento completo: o Node.js apenas despacha JSON para o Python e lê o JSON de resposta pela saída padrão (stdout).',
     howItWorks: [
       'Analisa se foram passados argumentos na linha de comando (sys.argv com a flag --json).',
       'Lê da entrada padrão (sys.stdin) caso seja chamado via pipe.',
-      'Faz o parse do JSON de entrada e chama calculate() ou calculate_binary().',
+      'Faz o parse do JSON de entrada e chama calculate(), calculate_binary() ou calculate_percentage().',
       'Serializa o resultado em JSON puro com json.dumps() e imprime no stdout.',
     ],
     keyHighlight:
-      'data = json.loads(input_data)\nres = calculate_binary(float(data["operand1"]), str(data["operator"]), float(data["operand2"]))\nprint(json.dumps(res, ensure_ascii=False))',
+      'data = json.loads(input_data)\nif data.get("action") == "percentage":\n    res = calculate_percentage(val, base, op)\nprint(json.dumps(res, ensure_ascii=False))',
   },
 ];
 
@@ -142,6 +159,7 @@ import sys
 import json
 import ast
 import operator
+import re
 from decimal import Decimal, InvalidOperation
 
 # Operadores suportados
@@ -156,11 +174,15 @@ OPERATORS = {
 }
 
 def clean_expression(raw_expr: str) -> str:
-    """Normaliza símbolos de operadores comuns para operadores Python padrão."""
+    """Normaliza símbolos de operadores comuns e converte porcentagens para notação aritmética válida."""
     expr = raw_expr.strip()
     expr = expr.replace('×', '*').replace('x', '*').replace('X', '*')
     expr = expr.replace('÷', '/')
     expr = expr.replace(',', '.')
+    # Converte acréscimo ou desconto percentual: ex: "200 + 10%" -> "200 + (200 * 10 / 100)"
+    expr = re.sub(r'(\d+(?:\.\d+)?)\s*([+\-])\s*(\d+(?:\.\d+)?)\s*%', r'\1 \2 (\1 * \3 / 100)', expr)
+    # Converte porcentagem direta em qualquer outro contexto: ex: "50%" -> "(50 / 100)"
+    expr = re.sub(r'(\d+(?:\.\d+)?)\s*%', r'(\1 / 100)', expr)
     return expr
 
 def eval_node(node):
@@ -284,6 +306,42 @@ def calculate_binary(op1: float, operator_symbol: str, op2: float) -> dict:
     expr = f"{str_op1} {cleaned_op} {str_op2}"
     return calculate(expr)
 
+def calculate_percentage(value: float, base: float | None = None, operator_symbol: str | None = None) -> dict:
+    """
+    Calcula a porcentagem tanto de forma simples (ex: 50% = 0.5) 
+    quanto contextual associada a um operador (ex: 200 + 10% -> 20).
+    """
+    try:
+        val = float(value)
+        if base is not None and operator_symbol:
+            b = float(base)
+            op = operator_symbol.strip()
+            if op in ('+', '-'):
+                # Em adições e subtrações comerciais, X% de Base é (Base * X) / 100
+                percent_val = (b * val) / 100.0
+            else:
+                # Em multiplicações e divisões, X% é X / 100
+                percent_val = val / 100.0
+        else:
+            percent_val = val / 100.0
+
+        formatted = format_number(percent_val)
+        num_result = int(formatted) if '.' not in formatted else float(formatted)
+
+        return {
+            "success": True,
+            "result": num_result,
+            "formattedResult": formatted,
+            "percentage": val,
+            "base": base,
+            "operator": operator_symbol
+        }
+    except Exception as e:
+        return {
+            "success": False,
+            "error": f"Erro ao calcular porcentagem: {str(e)}"
+        }
+
 def main():
     """Interface CLI para chamada via linha de comando ou pipe JSON."""
     input_data = ""
@@ -305,7 +363,16 @@ def main():
     try:
         data = json.loads(input_data)
         if isinstance(data, dict):
-            if "operand1" in data and "operator" in data and "operand2" in data:
+            if data.get("action") == "percentage" or "percentage" in data:
+                val = data.get("percentage") if "percentage" in data else data.get("value", 0)
+                base = data.get("base")
+                op = data.get("operator")
+                res = calculate_percentage(
+                    float(val),
+                    float(base) if base is not None else None,
+                    str(op) if op else None
+                )
+            elif "operand1" in data and "operator" in data and "operand2" in data:
                 res = calculate_binary(float(data["operand1"]), str(data["operator"]), float(data["operand2"]))
             elif "expression" in data:
                 res = calculate(str(data["expression"]))

@@ -9,6 +9,7 @@ import sys
 import json
 import ast
 import operator
+import re
 from decimal import Decimal, InvalidOperation
 
 # Operadores suportados
@@ -23,11 +24,15 @@ OPERATORS = {
 }
 
 def clean_expression(raw_expr: str) -> str:
-    """Normaliza símbolos de operadores comuns para operadores Python padrão."""
+    """Normaliza símbolos de operadores comuns e converte porcentagens para notação aritmética válida."""
     expr = raw_expr.strip()
     expr = expr.replace('×', '*').replace('x', '*').replace('X', '*')
     expr = expr.replace('÷', '/')
     expr = expr.replace(',', '.')
+    # Converte acréscimo ou desconto percentual: ex: "200 + 10%" -> "200 + (200 * 10 / 100)"
+    expr = re.sub(r'(\d+(?:\.\d+)?)\s*([+\-])\s*(\d+(?:\.\d+)?)\s*%', r'\1 \2 (\1 * \3 / 100)', expr)
+    # Converte porcentagem direta em qualquer outro contexto: ex: "50%" -> "(50 / 100)"
+    expr = re.sub(r'(\d+(?:\.\d+)?)\s*%', r'(\1 / 100)', expr)
     return expr
 
 def eval_node(node):
@@ -151,6 +156,42 @@ def calculate_binary(op1: float, operator_symbol: str, op2: float) -> dict:
     expr = f"{str_op1} {cleaned_op} {str_op2}"
     return calculate(expr)
 
+def calculate_percentage(value: float, base: float | None = None, operator_symbol: str | None = None) -> dict:
+    """
+    Calcula a porcentagem tanto de forma simples (ex: 50% = 0.5) 
+    quanto contextual associada a um operador (ex: 200 + 10% -> 20).
+    """
+    try:
+        val = float(value)
+        if base is not None and operator_symbol:
+            b = float(base)
+            op = operator_symbol.strip()
+            if op in ('+', '-'):
+                # Em adições e subtrações comerciais, X% de Base é (Base * X) / 100
+                percent_val = (b * val) / 100.0
+            else:
+                # Em multiplicações e divisões, X% é X / 100
+                percent_val = val / 100.0
+        else:
+            percent_val = val / 100.0
+
+        formatted = format_number(percent_val)
+        num_result = int(formatted) if '.' not in formatted else float(formatted)
+
+        return {
+            "success": True,
+            "result": num_result,
+            "formattedResult": formatted,
+            "percentage": val,
+            "base": base,
+            "operator": operator_symbol
+        }
+    except Exception as e:
+        return {
+            "success": False,
+            "error": f"Erro ao calcular porcentagem: {str(e)}"
+        }
+
 def main():
     """Interface CLI para chamada via linha de comando ou pipe JSON."""
     input_data = ""
@@ -172,7 +213,16 @@ def main():
     try:
         data = json.loads(input_data)
         if isinstance(data, dict):
-            if "operand1" in data and "operator" in data and "operand2" in data:
+            if data.get("action") == "percentage" or "percentage" in data:
+                val = data.get("percentage") if "percentage" in data else data.get("value", 0)
+                base = data.get("base")
+                op = data.get("operator")
+                res = calculate_percentage(
+                    float(val),
+                    float(base) if base is not None else None,
+                    str(op) if op else None
+                )
+            elif "operand1" in data and "operator" in data and "operand2" in data:
                 res = calculate_binary(float(data["operand1"]), str(data["operator"]), float(data["operand2"]))
             elif "expression" in data:
                 res = calculate(str(data["expression"]))

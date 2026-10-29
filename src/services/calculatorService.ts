@@ -20,6 +20,7 @@ const PYTHON_CALCULATOR_CODE = `
 import ast
 import operator
 import json
+import re
 
 OPERATORS = {
     ast.Add: operator.add,
@@ -36,6 +37,10 @@ def clean_expression(raw_expr: str) -> str:
     expr = expr.replace('×', '*').replace('x', '*').replace('X', '*')
     expr = expr.replace('÷', '/')
     expr = expr.replace(',', '.')
+    # Converte acréscimo ou desconto percentual: ex: "200 + 10%" -> "200 + (200 * 10 / 100)"
+    expr = re.sub(r'(\d+(?:\.\d+)?)\s*([+\-])\s*(\d+(?:\.\d+)?)\s*%', r'\1 \2 (\1 * \3 / 100)', expr)
+    # Converte porcentagem direta em qualquer outro contexto: ex: "50%" -> "(50 / 100)"
+    expr = re.sub(r'(\d+(?:\.\d+)?)\s*%', r'(\1 / 100)', expr)
     return expr
 
 def eval_node(node):
@@ -69,6 +74,35 @@ def format_number(val: float | int) -> str:
     if rounded == int(rounded):
         return str(int(rounded))
     return f"{rounded:.10f}".rstrip('0').rstrip('.')
+
+def calculate_percentage(value, base=None, operator_symbol=None):
+    try:
+        val = float(value)
+        if base is not None and operator_symbol:
+            b = float(base)
+            op = str(operator_symbol).strip()
+            if op in ('+', '-'):
+                percent_val = (b * val) / 100.0
+            else:
+                percent_val = val / 100.0
+        else:
+            percent_val = val / 100.0
+
+        formatted = format_number(percent_val)
+        num_result = int(formatted) if '.' not in formatted else float(formatted)
+        return {
+            "success": True,
+            "result": num_result,
+            "formattedResult": formatted,
+            "percentage": val,
+            "base": base,
+            "operator": operator_symbol
+        }
+    except Exception as e:
+        return {"success": False, "error": f"Erro ao calcular porcentagem: {str(e)}"}
+
+def py_percentage(val, base=None, op=None):
+    return json.dumps(calculate_percentage(val, base, op))
 
 def py_calculate(expr_str: str) -> str:
     try:
@@ -142,6 +176,10 @@ export async function calculateWithPython(payload: {
   operator?: string | null;
   operand2?: number;
   expression?: string;
+  action?: string;
+  value?: number;
+  base?: number;
+  percentage?: number;
 }): Promise<{
   success: boolean;
   result?: number;
@@ -149,6 +187,7 @@ export async function calculateWithPython(payload: {
   expression?: string;
   error?: string;
   engine: EngineType;
+  historyRecord?: any;
 }> {
   let expr = payload.expression;
   if (!expr && payload.operand1 !== undefined && payload.operator && payload.operand2 !== undefined) {
@@ -157,7 +196,9 @@ export async function calculateWithPython(payload: {
     expr = `${op1} ${payload.operator} ${op2}`;
   }
 
-  if (!expr) {
+  const isPercentageAction = payload.action === 'percentage' || payload.percentage !== undefined;
+
+  if (!expr && !isPercentageAction) {
     return { success: false, error: 'Expressão inválida', engine: activeEngineType };
   }
 
@@ -185,8 +226,18 @@ export async function calculateWithPython(payload: {
   // Modo Python WebAssembly (GitHub Pages)
   try {
     const pyodide = await initPyodide();
-    const cleanExprArg = expr.replace(/'/g, "\\'");
-    const rawResultJson = await pyodide.runPythonAsync(`py_calculate('${cleanExprArg}')`);
+    let rawResultJson: string;
+
+    if (isPercentageAction) {
+      const val = payload.percentage ?? payload.value ?? 0;
+      const baseArg = payload.base !== undefined ? payload.base : 'None';
+      const opArg = payload.operator ? `'${payload.operator}'` : 'None';
+      rawResultJson = await pyodide.runPythonAsync(`py_percentage(${val}, ${baseArg}, ${opArg})`);
+    } else {
+      const cleanExprArg = (expr || '').replace(/'/g, "\\'");
+      rawResultJson = await pyodide.runPythonAsync(`py_calculate('${cleanExprArg}')`);
+    }
+
     const parsed = JSON.parse(rawResultJson);
     return { ...parsed, engine: 'wasm' };
   } catch (err: any) {

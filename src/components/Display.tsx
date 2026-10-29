@@ -37,8 +37,10 @@ export const Display: React.FC<DisplayProps> = ({
       {/* Barra superior de status do visor */}
       <div className="flex items-center justify-between text-xs text-slate-400 mb-2">
         <div className="flex items-center gap-1.5 font-mono text-[11px] tracking-wide">
-          <Cpu className="w-3.5 h-3.5 text-blue-400" />
-          <span>Backend Python {pythonVersion ? `(${pythonVersion})` : ''}</span>
+          <Cpu className={`w-3.5 h-3.5 transition-colors ${isLoading ? 'text-amber-400 animate-spin' : 'text-blue-400'}`} />
+          <span className={isLoading ? 'text-amber-300 font-medium' : ''}>
+            {isLoading ? 'Calculando no Python...' : `Backend Python ${pythonVersion ? `(${pythonVersion})` : ''}`}
+          </span>
         </div>
 
         <button
