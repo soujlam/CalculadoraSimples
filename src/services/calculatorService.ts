@@ -38,9 +38,9 @@ def clean_expression(raw_expr: str) -> str:
     expr = expr.replace('÷', '/')
     expr = expr.replace(',', '.')
     # Converte acréscimo ou desconto percentual: ex: "200 + 10%" -> "200 + (200 * 10 / 100)"
-    expr = re.sub(r'(\d+(?:\.\d+)?)\s*([+\-])\s*(\d+(?:\.\d+)?)\s*%', r'\1 \2 (\1 * \3 / 100)', expr)
+    expr = re.sub(r'(\\d+(?:\\.\\d+)?)\\s*([+\\-])\\s*(\\d+(?:\\.\\d+)?)\\s*%', r'\\1 \\2 (\\1 * \\3 / 100)', expr)
     # Converte porcentagem direta em qualquer outro contexto: ex: "50%" -> "(50 / 100)"
-    expr = re.sub(r'(\d+(?:\.\d+)?)\s*%', r'(\1 / 100)', expr)
+    expr = re.sub(r'(\\d+(?:\\.\\d+)?)\\s*%', r'(\\1 / 100)', expr)
     return expr
 
 def eval_node(node):
